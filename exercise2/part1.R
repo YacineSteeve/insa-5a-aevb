@@ -6,13 +6,13 @@ library(patchwork)
 data = read.csv("prenoms.csv", sep=";")
 
 a=aggregate(data$Nombre,list(data$Annee), sum)
-x11()
+#x11()
 barplot(a$x, names.arg=a$Group, xlab="Year", ylab="Birth Count")
 
 male = aggregate(data$Nombre[data$Sexe=="M"], list(data$Annee[data$Sexe=="M"]), sum)
 female = aggregate(data$Nombre[data$Sexe=="F"], list(data$Annee[data$Sexe=="F"]), sum)
 values = matrix(c(male$x, female$x), nrow=2, ncol=length(male$Group), byrow=TRUE)
-x11()
+#x11()
 barplot(values, names.arg=male$Group, col=c("blue","pink"), beside=TRUE)
 legend("topleft", c("Male","Female"), cex=0.7, fill=c("blue","pink"))
 
@@ -43,15 +43,27 @@ avg_consonant = data %>% group_by(Annee) %>%
   summarize(Moyenne=mean(NbLettres))
 ggplot(avg_consonant, aes(x = Annee, y = Moyenne)) + geom_line() + geom_point()
 
-nb_compose = data %>% group_by(Annee) %>% 
+
+births_by_year_T <- data %>% group_by(Annee)
+
+births_by_year_T_a = aggregate(births_by_year_T$Nombre, list(births_by_year_T$Annee), sum)
+colnames(births_by_year_T_a)[1] <- "Annee"
+colnames(births_by_year_T_a)[2] <- "Total"
+births_by_year_T_a
+
+nb_compose = data %>% 
+  group_by(Annee) %>% 
   mutate(Compose=nchar(gsub("[^-]","",Prenom, ignore.case=TRUE))*Nombre) %>%
   summarize(Nombre=sum(Compose))
+nb_compose
 
-births_by_year_T <- data %>% 
-  group_by(Annee) %>%
-  aggregate(Nombre, list(Prenom), sum)
+nb_compose2 = merge(nb_compose, births_by_year_T_a, by="Annee", all=TRUE)
+nb_compose2
 
-p2 <-ggplot(nb_compose, aes(x = Annee, y = Nombre)) + geom_line() + geom_point()
+nb_compose3 = nb_compose2 %>% mutate(Avg=Nombre/Total)
+nb_compose3
+
+p1 <-ggplot(nb_compose3, aes(x = Annee, y = Avg)) + geom_line() + geom_point()
 
 
 
@@ -62,13 +74,13 @@ p2 <-ggplot(nb_compose, aes(x = Annee, y = Nombre)) + geom_line() + geom_point()
 data= read.csv("prenomsParis.csv", sep=";")
 
 a=aggregate(data$Nombre,list(data$Annee), sum)
-x11()
+#x11()
 barplot(a$x, names.arg=a$Group, xlab="Year", ylab="Birth Count")
 
 male = aggregate(data$Nombre[data$Sexe=="M"], list(data$Annee[data$Sexe=="M"]), sum)
 female = aggregate(data$Nombre[data$Sexe=="F"], list(data$Annee[data$Sexe=="F"]), sum)
 values = matrix(c(male$x, female$x), nrow=2, ncol=length(male$Group), byrow=TRUE)
-x11()
+#x11()
 barplot(values, names.arg=male$Group, col=c("blue","pink"), beside=TRUE)
 legend("topleft", c("Male","Female"), cex=0.7, fill=c("blue","pink"))
 
@@ -99,9 +111,52 @@ avg_consonant = data %>% group_by(Annee) %>%
   summarize(Moyenne=mean(NbLettres))
 ggplot(avg_consonant, aes(x = Annee, y = Moyenne)) + geom_line() + geom_point()
 
-nb_compose = data %>% group_by(Annee) %>% 
+births_by_year_P <- data %>% group_by(Annee)
+
+births_by_year_P_a = aggregate(births_by_year_P$Nombre, list(births_by_year_P$Annee), sum)
+colnames(births_by_year_P_a)[1] <- "Annee"
+colnames(births_by_year_P_a)[2] <- "Total"
+births_by_year_P_a
+
+nb_compose = data %>% 
+  group_by(Annee) %>% 
   mutate(Compose=nchar(gsub("[^-]","",Prenom, ignore.case=TRUE))*Nombre) %>%
   summarize(Nombre=sum(Compose))
-p1 <- ggplot(nb_compose, aes(x = Annee, y = Nombre)) + geom_line() + geom_point()
+nb_compose
+
+nb_compose2 = merge(nb_compose, births_by_year_P_a, by="Annee", all=TRUE)
+nb_compose2
+
+nb_compose3 = nb_compose2 %>% mutate(Avg=Nombre/Total)
+nb_compose3
+
+p2 <-ggplot(nb_compose3, aes(x = Annee, y = Avg)) + geom_line() + geom_point()
 
 p1 + p2
+
+
+###############################################################################
+
+data_t = read.csv("prenoms.csv", sep=";")
+data_p = read.csv("prenomsParis.csv", sep=";")
+
+total_t = sum(data_t$Nombre)
+total_p = sum(data_p$Nombre)
+
+total_prenoms_t = aggregate(data_t$Nombre, list(data_t$Prenom), sum)
+total_prenoms_p = aggregate(data_p$Nombre, list(data_p$Prenom), sum)
+
+total_prenoms_t$Frequence <- total_prenoms_t$x / total_t
+total_prenoms_p$Frequence <- total_prenoms_p$x / total_p
+
+total_prenoms = merge(total_prenoms_t, total_prenoms_p, by="Group.1")
+
+total_prenoms$Diff = abs(total_prenoms$Frequence.x - total_prenoms$Frequence.y)
+
+most_unshared = total_prenoms %>% slice_max(Diff, n=5)
+
+
+
+
+
+
